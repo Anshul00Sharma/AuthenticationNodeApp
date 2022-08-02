@@ -44,23 +44,23 @@ module.exports.createUser = async function (req, res) {
         password: req.body.password,
       });
 
-      //Mailing system
-      let mailOptions = {
-        to: req.body.email,
-        subject: "Authentication System | Signed Up",
-        text:
-          "Hey " +
-          req.body.name +
-          "\n\n Your Account has been created, Just signed in and enjoy :)",
-      };
+      // //Mailing system
+      // let mailOptions = {
+      //   to: req.body.email,
+      //   subject: "Authentication System | Signed Up",
+      //   text:
+      //     "Hey " +
+      //     req.body.name +
+      //     "\n\n Your Account has been created, Just signed in and enjoy :)",
+      // };
 
-      //send the mail
-      let mail = await transporter.sendMail(mailOptions);
-      if (!mail) {
-        req.flash("error", "Error in Sending Mail!");
-      }
+      // //send the mail
+      // let mail = await transporter.sendMail(mailOptions);
+      // if (!mail) {
+      //   req.flash("error", "Error in Sending Mail!");
+      // }
 
-      req.flash("success", "You are registered with us! Check your mail");
+      req.flash("success", "You are registered with us!");
       return res.redirect("/users/sign-in");
     } else {
       req.flash("error", "User already exist!");
@@ -68,30 +68,8 @@ module.exports.createUser = async function (req, res) {
     }
   } catch (err) {
     console.log("Error", err);
-    req.flash("error", "Some Error Occoured while signup!");
+    req.flash("error", `Some Error Occoured while signup! -> `);
     return res.redirect("back");
-  }
-};
-
-//to verify the user after signing-up and clicking on the email link
-module.exports.verifyUser = async function (req, res) {
-  try {
-    await User.findOne(
-      { passwordToken: req.params.token, tokenExpiry: { $gt: Date.now() } },
-      function (err, user) {
-        if (!user) {
-          req.flash("error", "Token has been expired or isn't valid");
-          return res.redirect("back");
-        }
-        user.isVerified = true;
-        user.save();
-        req.flash("success", "Hurray! Your account is verified successfully");
-        return res.redirect("/users/sign-in");
-      }
-    );
-  } catch (err) {
-    req.flash("error", `Error caught ${err}`);
-    res.redirect("back");
   }
 };
 

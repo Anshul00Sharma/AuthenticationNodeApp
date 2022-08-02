@@ -17,9 +17,6 @@ router.get("/sign-up", recaptcha.middleware.render, usersController.signUp);
 //create a user
 router.post("/create", recaptcha.middleware.verify, usersController.createUser);
 
-//to verify user
-router.get("/verify-user/:token", usersController.verifyUser);
-
 //signin a user
 router.get("/sign-in", recaptcha.middleware.render, usersController.signIn);
 
