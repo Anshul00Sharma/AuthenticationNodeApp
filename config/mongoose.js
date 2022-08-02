@@ -3,12 +3,10 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 // mongodb URL
-// const MongoDB_URI = "mongodb://localhost/NodeJsAuthentication";
-const MongoDB_URI =
-  "mongodb+srv://Sharma:n5L7GC4r9jgRb9gO@cluster0.rrarjfe.mongodb.net/?retryWrites=true&w=majority";
-// process.env.MongoDB_URI ||
+const MongoDB_URI = "mongodb://localhost/NodeJsAuthentication";
+
 mongoose
-  .connect(MongoDB_URI)
+  .connect(process.env.MongoDB_URI || MongoDB_URI)
   .then(() => {
     console.log("connection successfull");
   })

@@ -42,7 +42,6 @@ passport.use(
             //   return done(null, false);
             // }
           }
-
           req.flash("error", "Invalid Username/Password, please try again");
         });
       });
