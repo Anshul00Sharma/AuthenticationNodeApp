@@ -6,7 +6,11 @@
         <% if(locals.user) { %>
             <a href="/users/sign-out"><button class="btn  h-btn" type="button" style="background-color:rgb(157, 174, 172);
 color: rgb(230, 239, 233); ">Sign-out</button></a>
-            <br><span id="user_name"> Hi <%= user.name %></span>
+            <button class="btn h-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTop"
+                aria-controls="offcanvasTop" style="background-color:rgb(157, 174, 172);
+color: rgb(230, 239, 233); ">Update Password</button>
+
+            <br><span class="mx-auto" id="user_name"> Hi <%= user.name %></span>
             <% } else {%>
                 <a href="/users/sign-in" class="me-3"><button class="btn  h-btn" type="button" style="background-color:rgb(157, 174, 172);
 color: rgb(230, 239, 233); ">Sign-in</button></a>
@@ -15,5 +19,25 @@ color: rgb(230, 239, 233); ">Sign-up</button></a>
                 <% } %>
 
 
+    </div>
+
+
+    <div class="offcanvas offcanvas-top opacity-75" tabindex="-1" id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
+        <div class="offcanvas-header ">
+            <h5 class="offcanvas-title" id="offcanvasTopLabel">Reset Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body mx-auto ">
+
+            <form action="/users/update-password" method="POST">
+                <input type="password" id="old-password" name="old_password" placeholder="Enter your Old Password!"
+                    required>
+                <input type="password" id="new-password" name="new_password" placeholder="Enter your New Password!"
+                    required>
+                <input type="password" id="confirm-password" name="confirm_password"
+                    placeholder="Confirm the New Password!" required>
+                <input type="submit" value="Update Password">
+            </form>
+        </div>
     </div>
 </div>

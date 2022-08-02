@@ -1,8 +1,6 @@
 const User = require("../models/user");
 const crypto = require("crypto");
-const nodemailer = require("../config/nodemailer");
-const bcrypt = require("bcrypt");
-const { isPromise } = require("util/types");
+const transporter = require("../config/nodemailer");
 
 //render the sign up page
 module.exports.signUp = function (req, res) {
@@ -23,177 +21,54 @@ module.exports.signIn = function (req, res) {
 //get the sign up data and send mail a mail to user confirmation and verification
 module.exports.createUser = async function (req, res) {
   try {
+    //check for password match
     if (req.body.password != req.body.confirm_password) {
-      req.flash("error", "Password and Confirm Password doesn't match");
+      req.flash(
+        "error",
+        "Please enter the correct password in the confirm password"
+      );
       return res.redirect("back");
     }
     if (req.recaptcha.error) {
       req.flash("error", "Recaptcha Issue");
       return res.redirect("back");
     }
-    let token = crypto.randomBytes(20).toString("hex");
-    let person;
-    User.findOne({ email: req.body.email }, async function (err, user) {
-      if (err) {
-        console.log("error in finding user in signing up");
-        return;
+
+    let user = await User.findOne({ email: req.body.email });
+
+    //If user is not present then create it
+    if (!user) {
+      await User.create({
+        name: req.body.name,
+        email: req.body.email,
+        password: req.body.password,
+      });
+
+      //Mailing system
+      let mailOptions = {
+        to: req.body.email,
+        subject: "Authentication System | Signed Up",
+        text:
+          "Hey " +
+          req.body.name +
+          "\n\n Your Account has been created, Just signed in and enjoy :)",
+      };
+
+      //send the mail
+      let mail = await transporter.sendMail(mailOptions);
+      if (!mail) {
+        req.flash("error", "Error in Sending Mail!");
       }
-      if (!user) {
-        const hashedPassword = await new Promise((res, rej) => {
-          bcrypt.genSalt(10, function (err, salt) {
-            bcrypt.hash(req.body.password, salt, function (err, hash) {
-              if (err) {
-                req.flash("error", "hash geneartion error");
-                rej(hash);
-                return res.redirect("/sign-up");
-              }
-              res(hash);
-            });
-          });
-        });
 
-        await User.create(
-          {
-            name: req.body.name,
-            email: req.body.email,
-            password: hashedPassword,
-            isVerified: false,
-            passwordToken: token,
-            tokenExpiry: Date.now() + 1000000,
-          },
-          function (err, user) {
-            if (err) {
-              console.log("error in creating user while signing up", err);
-              return;
-            }
-            req.flash("success", "users created successfully");
-
-            return res.redirect("/users/sign-in");
-          }
-        );
-      } else {
-        req.flash("error", "user already exists");
-        return res.redirect("back");
-      }
-    });
-
-    // await User.find(
-    //   {
-    //     email: req.body.email,
-    //   },
-    //   function (err, user) {
-    //     if (err) {
-    //       console.log("Error in finding user in signing up");
-    //       return res.redirect("back");
-    //     }
-    //     if (user) {
-    //       return res.redirect("back");
-    //     } else {
-    //       const hashedPassword = new Promise((res, rej) => {
-    //         bcrypt.genSalt(10, function (err, salt) {
-    //           bcrypt.hash(req.body.password, salt, function (err, hash) {
-    //             if (err) {
-    //               req.flash("error", "hash geneartion error");
-    //               rej(hash);
-    //               return res.redirect("/sign-up");
-    //             }
-    //             res(hash);
-    //           });
-    //         });
-    //       });
-
-    //       let createUser = User.create({
-    //         name: req.body.name,
-    //         email: req.body.email,
-    //         password: hashedPassword,
-    //         isVerified: false,
-    //         passwordToken: token,
-    //         tokenExpiry: Date.now() + 1000000,
-    //       });
-    //       createUser.save();
-    //     }
-    //   }
-    // ).clone();
-
-    // createUser
-    //   .then((res) => {
-    //     person = res;
-    //     nodemailer.sendMail(
-    //       {
-    //         to: person.email,
-    //         subject: "Account Confirmation & Verfication",
-    //         text:
-    //           "Click on the link to verify your account \n\n" +
-    //           "http://" +
-    //           req.headers.host +
-    //           "/users/verify-user/" +
-    //           token +
-    //           "\n\n",
-    //       },
-    //       function (err, info) {
-    //         if (err) {
-    //           req.flash("error", "Error! Cannot send mail");
-    //           return;
-    //         }
-    //         req.flash("success", "Mail sent successfully");
-    //         return res.redirect("back");
-    //       }
-    //     );
-    //     req.flash(
-    //       "success",
-    //       "Your account has been created kindly check your mail and verify it"
-    //     );
-    //   })
-    //   .catch((err) => {
-    //     req.flash("error", `this is last catch ${err}`);
-    //     return res.redirect("back");
-    //   });
-
-    // await User.create(
-    //   {
-    //     name: req.body.name,
-    //     email: req.body.email,
-    //     password: hashedPassword,
-    //     isVerified: false,
-    //     passwordToken: token,
-    //     tokenExpiry: Date.now() + 1000000,
-    //   },
-    //   function (err, user) {
-    //     if (err) {
-    //       console.log("Error! Cannot create the user try again");
-    //       return res.redirect("back");
-    //     }
-    //     person = user;
-    //     nodemailer.sendMail(
-    //       {
-    //         to: person.email,
-    //         subject: "Account Confirmation & Verfication",
-    //         text:
-    //           "Click on the link to verify your account \n\n" +
-    //           "http://" +
-    //           req.headers.host +
-    //           "/users/verify-user/" +
-    //           token +
-    //           "\n\n",
-    //       },
-    //       function (err, info) {
-    //         if (err) {
-    //           req.flash("error", "Error! Cannot send mail");
-    //           return;
-    //         }
-    //         req.flash("success", "Mail sent successfully");
-    //         return res.redirect("back");
-    //       }
-    //     );
-    //     req.flash(
-    //       "success",
-    //       "Your account has been created kindly check your mail and verify it"
-    //     );
-    //   }
-    // );
+      req.flash("success", "You are registered with us! Check your mail");
+      return res.redirect("/users/sign-in");
+    } else {
+      req.flash("error", "User already exist!");
+      return res.redirect("/users/sign-in");
+    }
   } catch (err) {
-    console.log("this is the last catch ---> ", err);
-    req.flash("error", `this is last catch ${err}`);
+    console.log("Error", err);
+    req.flash("error", "Some Error Occoured while signup!");
     return res.redirect("back");
   }
 };
@@ -241,56 +116,53 @@ module.exports.destroySession = function (req, res) {
 module.exports.forgotPassword = function (req, res) {
   return res.render("forgot_password", {
     title: "Forgot Password Page",
+    user: req.user,
   });
 };
 
 //forgot password
 module.exports.forgotPasswordAction = async function (req, res) {
-  try {
-    const token = crypto.randomBytes(20).toString("hex");
-    var person;
-    await User.findOne({ email: req.body.email }, function (err, user) {
-      console.log("this is user", user);
-      if (user !== null) {
-        user.passwordToken = token;
-        user.tokenExpiry = Date.now() + 1000000;
-        user.save();
-        person = user;
-
-        nodemailer.sendMail(
-          {
-            to: person.email,
-            subject: "==>ForgotPassword: Reset Email",
-            text:
-              "Click on the link to reset your password :\n\n" +
-              "http://" +
-              req.headers.host +
-              "/users/reset-password/" +
-              token +
-              "\n\n",
-          },
-          function (err, info) {
-            if (err) {
-              req.flash("error", "Cannot send mail");
-              return;
-            }
-            req.flash("success", "Mail sent successfully");
-            console.log("message sent -->", info);
-            return res.redirect("back");
-          }
-        );
-      } else {
-        req.flash(
-          "error",
-          "No such user exists, kindly check your username or sign up"
-        );
-        return res.redirect("/users/forgot-password");
-      }
-    });
-  } catch (err) {
-    req.flash("success", "email sent");
-    return res.redirect("/users/forgot-password");
+  if (req.isAuthenticated()) {
+    return res.redirect("/");
   }
+
+  //creation of tokens
+  let token = await crypto.randomBytes(20).toString("hex");
+
+  let user = await User.findOne({ email: req.body.email });
+
+  //check the user is present in the sb or not
+  if (!user) {
+    req.flash("error", "No associated account with this email!");
+    return res.redirect("back");
+  }
+
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = Date.now() + 1800000; //Token will expires in half an hour
+  user.save();
+
+  let mailOptions = {
+    to: user.email,
+    subject: "Authentication System | Forgot Password Mail",
+    text:
+      "Hi, \n\n This is mail for the your requested for the forgot password of your account.\n\n" +
+      "http://" +
+      req.headers.host +
+      "/users/reset-password/" +
+      token +
+      "\n\n",
+  };
+
+  let mail = await transporter.sendMail(mailOptions);
+  if (!mail) {
+    req.flash("error", "Error Sending Mail!");
+  }
+
+  req.flash(
+    "success",
+    "An e-mail has been sent to " + user.email + " with further instructions."
+  );
+  return res.redirect("/users/forgot-password");
 };
 
 //reset form view
@@ -304,66 +176,68 @@ module.exports.resetPasswordForm = function (req, res) {
 //reset password post action
 module.exports.resetPasswordAction = async function (req, res) {
   try {
-    await User.findOne(
-      { passwordToken: req.params.token, tokenExpiry: { $gt: Date.now() } },
-      function (err, user) {
-        if (!user) {
-          req.flash("error", "Token has benn expired or isn't valid");
-          return res.redirect("back");
-        }
-        if (req.body.password === req.body.confirm_password) {
-          bcrypt.genSalt(10, function (err, salt) {
-            bcrypt.hash(req.body.password, salt, function (err, hash) {
-              if (err) {
-                req.flash("error", "hash generation error");
-                return res.redirect("back");
-              }
-              user.password = hash;
-              user.save();
-            });
-          });
-          req.flash("success", "Password changed & Upated successfully");
-          return res.redirect("/");
-        } else {
-          req.flash("error", "Passwords didn't match");
-          return res.redirect("back");
-        }
-      }
-    );
+    if (req.isAuthenticated()) {
+      return res.redirect("/");
+    }
+
+    let user = await User.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      req.flash("error", "Password reset token is invalid or has expired.");
+      return res.redirect("back");
+    }
+
+    //Create New Password
+    if (req.body.password == req.body.confirm_password) {
+      user.password = req.body.password;
+      user.save();
+      req.flash("success", "Password Changed Successfully!.");
+      res.redirect("/users/sign-in");
+    } else {
+      req.flash("error", "Passwords does not match.");
+      return res.redirect("back");
+    }
   } catch (err) {
-    req.flash("error", "some error");
-    return res.redirect("back");
+    req.flash("error", "Some Error Occoured!");
+    res.redirect("/users/forgot-password");
   }
 };
 
-//reset password after signin in
-module.exports.resetPasswordAfterSignIn = async function (req, res) {
+module.exports.updatePassword = async function (req, res) {
   try {
-    await User.findOne({ email: req.user.email }, function (err, user) {
-      if (!user) {
-        req.flash("error", "Please check your email");
-        return res.redirect("back");
-      }
-      if (req.body.password === req.body.confirm_password) {
-        bcrypt.genSalt(10, function (err, salt) {
-          bcrypt.hash(req.body.password, salt, function (err, hash) {
-            if (err) {
-              req.flash("error", "hash generation error");
-              return res.redirect("back");
-            }
-            user.password = hash;
-            user.save();
-          });
-        });
-        req.flash("success", "Password updation successful");
-        return res.redirect("/sign-in");
+    //if new password doesnt match
+    if (req.body.new_password != req.body.confirm_password) {
+      req.flash("error", "Passwords dont match");
+      console.log("passwords dont match");
+      return res.redirect("back");
+    }
+    console.log(req.user.id);
+
+    let user = await User.findById(req.user.id);
+    console.log(user);
+    if (user) {
+      if (user.matchPassword(req.body.old_password)) {
+        user.password = req.body.new_password;
+        await user.save();
+        console.log(user);
+        req.flash("success", "Password updated successfully");
+        console.log("password updated successfully");
       } else {
-        req.flash("error", "Passwords didn't match");
-        return res.redirect("back");
+        //if previous password is incorrect
+        req.flash("error", "Incorrect password");
+        console.log("incorrect password");
       }
-    });
+    } else {
+      req.flash("error", "user not found");
+      console.log("user not found");
+    }
+    return res.redirect("back");
   } catch (err) {
-    req.flash("error", err);
+    console.log(err);
+    req.flash("error", "Internal system error");
     return res.redirect("back");
   }
 };

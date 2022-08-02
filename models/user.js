@@ -1,9 +1,16 @@
-//require the same instance of mongoose library
+//mongoose is used for setup the schema here
 const mongoose = require("mongoose");
 
-//designing the user schema
-const userSchema = new mongoose.Schema(
+//bcrypt is used for encrypting the password
+const bcrypt = require("bcryptjs");
+
+//User Schema
+const UserSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+    },
     email: {
       type: String,
       required: true,
@@ -13,18 +20,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    name: {
+    resetPasswordToken: {
       type: String,
-      required: true,
+      required: false,
     },
-    passwordToken: {
-      type: String,
-    },
-    tokenExpiry: {
+    resetPasswordExpires: {
       type: Date,
-    },
-    isVerified: {
-      type: Boolean,
+      required: false,
     },
   },
   {
@@ -32,8 +34,17 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-//passing the userSchema instance to mongoose.model
-const User = mongoose.model("User", userSchema);
+//Encrypt the Password
+UserSchema.pre("save", async function () {
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
 
-//exporting the schema to be used
+// comparing and matching user password to hashed password in database
+UserSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+const User = mongoose.model("User", UserSchema);
+
 module.exports = User;

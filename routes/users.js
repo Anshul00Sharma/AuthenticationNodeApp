@@ -52,11 +52,6 @@ router.post("/forgot-password-action", usersController.forgotPasswordAction);
 //reset password
 router.get("/reset-password-signed-in", usersController.resetPasswordForm);
 
-//reset after sign in
-router.post(
-  "/reset-password-signed-in",
-  usersController.resetPasswordAfterSignIn
-);
 //google Oauth sign in/up
 router.get(
   "/auth/google",
@@ -69,5 +64,7 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/users/sign-in" }),
   usersController.createSession
 );
+// update password
+router.post("/update-password", usersController.updatePassword);
 
 module.exports = router;
